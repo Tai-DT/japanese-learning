@@ -59,10 +59,63 @@ const exerciseSample = {
   }
 };
 
+interface Card {
+  front: string;
+  back: string;
+  romaji: string;
+}
+
+interface Question {
+  question: string;
+  answer: string;
+}
+
+interface Kanji {
+  kanji: string;
+  meaning: string;
+  onyomi: string;
+  kunyomi: string;
+}
+
+interface BaseExercise {
+  id: number;
+  title: string;
+  category: string;
+  level: string;
+  description: string;
+  instructions: string;
+}
+
+interface FlashcardExercise extends BaseExercise {
+  cards: Card[];
+}
+
+interface QuestionExercise extends BaseExercise {
+  questions: Question[];
+}
+
+interface KanjiExercise extends BaseExercise {
+  kanjis: Kanji[];
+}
+
+type Exercise = FlashcardExercise | QuestionExercise | KanjiExercise;
+
+function isFlashcardExercise(exercise: Exercise): exercise is FlashcardExercise {
+  return 'cards' in exercise;
+}
+
+function isQuestionExercise(exercise: Exercise): exercise is QuestionExercise {
+  return 'questions' in exercise;
+}
+
+function isKanjiExercise(exercise: Exercise): exercise is KanjiExercise {
+  return 'kanjis' in exercise;
+}
+
 export default function ExerciseDetail() {
   const router = useRouter();
   const params = useParams();
-  const [exercise, setExercise] = useState<any>(null);
+  const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
   const [score, setScore] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
@@ -101,7 +154,17 @@ export default function ExerciseDetail() {
         setTimeSpent(minutesSpent);
       }
     };
-  }, [params, router]);
+  }, [params, router, startTime]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (startTime) {
+        setTimeSpent(Math.floor((Date.now() - startTime) / 1000));
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [startTime]);
 
   const handleComplete = () => {
     // Tính toán thời gian đã dành
@@ -116,7 +179,7 @@ export default function ExerciseDetail() {
     setCompleted(true);
   };
 
-  if (loading) {
+  if (loading || !exercise) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
@@ -157,11 +220,11 @@ export default function ExerciseDetail() {
         </div>
 
         {/* Nội dung bài tập - Flashcards */}
-        {exercise.cards && (
+        {exercise && isFlashcardExercise(exercise) && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Thẻ ghi nhớ</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {exercise.cards.map((card: any, index: number) => (
+              {exercise.cards.map((card: Card, index: number) => (
                 <div 
                   key={index}
                   className={`cursor-pointer border rounded-lg p-4 h-40 flex items-center justify-center shadow-sm transition-all duration-500 ${
@@ -186,11 +249,11 @@ export default function ExerciseDetail() {
         )}
 
         {/* Nội dung bài tập - Ngữ pháp */}
-        {exercise.questions && (
+        {exercise && isQuestionExercise(exercise) && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Câu hỏi</h2>
             <div className="space-y-4">
-              {exercise.questions.map((q: any, index: number) => (
+              {exercise.questions.map((q: Question, index: number) => (
                 <div key={index} className="border rounded-lg p-4 bg-white shadow-sm">
                   <p className="font-medium mb-2">{q.question}</p>
                   <div className="mt-4">
@@ -213,11 +276,11 @@ export default function ExerciseDetail() {
         )}
 
         {/* Nội dung bài tập - Kanji */}
-        {exercise.kanjis && (
+        {exercise && isKanjiExercise(exercise) && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Kanji</h2>
             <div className="space-y-4">
-              {exercise.kanjis.map((kanji: any, index: number) => (
+              {exercise.kanjis.map((kanji: Kanji, index: number) => (
                 <div key={index} className="border rounded-lg p-4 bg-white shadow-sm">
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
                     <div className="text-7xl font-bold text-center text-gray-800 md:w-1/4">

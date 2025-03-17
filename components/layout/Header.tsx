@@ -2,11 +2,11 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useAuth } from '@/components/auth/AuthContext';
 import Image from 'next/image';
 
 const Header: React.FC = () => {
-  const { data: session, status } = useSession();
+  const { session, status, signOut } = useAuth();
   const isLoading = status === 'loading';
 
   return (
@@ -32,10 +32,10 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             {isLoading ? (
               <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
-            ) : session ? (
+            ) : session?.user ? (
               <div className="flex items-center space-x-2 relative group">
                 <div className="flex items-center cursor-pointer rounded-full hover:bg-gray-100 p-1">
-                  {session.user?.image ? (
+                  {session.user.image ? (
                     <div className="h-8 w-8 relative">
                       <Image 
                         src={session.user.image} 
@@ -69,7 +69,7 @@ const Header: React.FC = () => {
                   </Link>
                   <div className="border-t border-gray-100 my-1"></div>
                   <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
+                    onClick={() => signOut()}
                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                   >
                     Đăng xuất
@@ -77,12 +77,12 @@ const Header: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <button
-                onClick={() => signIn('google')}
+              <Link
+                href="/auth/signin"
                 className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors"
               >
                 Đăng nhập
-              </button>
+              </Link>
             )}
           </div>
         </div>

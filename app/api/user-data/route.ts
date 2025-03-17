@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getServerSession } from 'next-auth';
 
+interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+}
+
+interface UserDataItem {
+  [key: string]: string | number | undefined;
+}
+
 // Khởi tạo Google Sheets API
 const initGoogleSheets = async () => {
   try {
@@ -34,6 +45,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const user = session.user as User;
+
     // Lấy userId từ query string
     const userId = request.nextUrl.searchParams.get('userId');
     if (!userId) {
@@ -41,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Kiểm tra xem userId trong request có khớp với userId trong session không
-    if (session.user.id !== userId) {
+    if (user.id !== userId) {
       return NextResponse.json({ error: 'Unauthorized access to user data' }, { status: 403 });
     }
 
@@ -73,7 +86,7 @@ export async function GET(request: NextRequest) {
     const userDataRows = rows.slice(1).filter(row => row[0] === userId);
     
     const userData = userDataRows.map(row => {
-      const item: any = {};
+      const item: UserDataItem = {};
       headers.forEach((header, index) => {
         if (header === 'score' || header === 'timeSpent') {
           item[header] = row[index] ? parseInt(row[index], 10) : undefined;
@@ -91,6 +104,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
+interface UserData {
+  userId: string;
+  date: string;
+  category: string;
+  topic: string;
+  score?: number;
+  timeSpent?: number;
+  level?: string;
+}
+
 // Lưu dữ liệu học tập của người dùng vào Google Sheets
 export async function POST(request: NextRequest) {
   try {
@@ -100,13 +123,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const data = await request.json();
+    const user = session.user as User;
+
+    const data = await request.json() as UserData;
     if (!data.userId || !data.category || !data.topic || !data.date) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     // Kiểm tra xem người dùng chỉ có thể lưu dữ liệu của chính họ
-    if (session.user.id !== data.userId) {
+    if (user.id !== data.userId) {
       return NextResponse.json({ error: 'Unauthorized access to user data' }, { status: 403 });
     }
 

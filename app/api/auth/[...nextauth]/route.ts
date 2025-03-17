@@ -2,6 +2,13 @@ import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { google } from "googleapis";
 
+interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+}
+
 // Khởi tạo Google Sheets API
 const initGoogleSheets = async () => {
   try {
@@ -26,7 +33,7 @@ const initGoogleSheets = async () => {
 };
 
 // Lưu dữ liệu người dùng vào Google Sheet
-const saveUserToSheet = async (user: any) => {
+const saveUserToSheet = async (user: User) => {
   try {
     const sheets = await initGoogleSheets();
     if (!sheets) return;
@@ -44,7 +51,7 @@ const saveUserToSheet = async (user: any) => {
     });
 
     const existingUsers = userExists.data.values || [];
-    const userIds = existingUsers.map((row: any) => row[0]);
+    const userIds = existingUsers.map((row: string[]) => row[0]);
     
     if (userIds.includes(user.id)) {
       // Cập nhật thông tin người dùng nếu đã tồn tại
@@ -72,7 +79,7 @@ const saveUserToSheet = async (user: any) => {
         insertDataOption: 'INSERT_ROWS',
         requestBody: {
           values: [[
-            user.id, 
+            user.id,
             user.name,
             user.email,
             user.image,
@@ -107,7 +114,7 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       if (session.user && token.sub) {
-        session.user.id = token.sub;
+        (session.user as User).id = token.sub;
       }
       return session;
     },
@@ -126,4 +133,4 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
 });
 
-export { handler as GET, handler as POST }; 
+export { handler as GET, handler as POST };

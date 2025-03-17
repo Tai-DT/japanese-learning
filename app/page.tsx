@@ -128,12 +128,12 @@ export default function Home() {
       </section>
 
       <section className="bg-indigo-50 p-8 rounded-xl">
-        <h2 className="text-2xl font-bold mb-6 text-center">Lưu Trữ Dữ Liệu An Toàn</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Lưu Trữ Dữ Liệu Học Tập</h2>
         <div className="flex flex-col md:flex-row items-center gap-8">
           <div className="md:w-1/2">
             <Image 
-              src="/images/google-sheets.png" 
-              alt="Google Sheets Integration" 
+              src="/images/data-storage.png" 
+              alt="Data Storage" 
               width={500} 
               height={300}
               className="rounded-lg"
@@ -142,7 +142,7 @@ export default function Home() {
           <div className="md:w-1/2">
             <h3 className="text-xl font-semibold mb-3">Tiến độ học tập luôn được lưu lại</h3>
             <p className="mb-4">
-              Bằng cách đăng nhập với tài khoản Google, dữ liệu học tập của bạn sẽ được lưu trữ an toàn trên Google Sheets, giúp bạn:
+              Bằng cách đăng nhập vào ứng dụng, dữ liệu học tập của bạn sẽ được lưu trữ cục bộ, giúp bạn:
             </p>
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
@@ -152,10 +152,10 @@ export default function Home() {
                 <span className="text-indigo-500">✓</span> Lưu lại kết quả bài tập
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-indigo-500">✓</span> Truy cập dữ liệu từ mọi thiết bị
+                <span className="text-indigo-500">✓</span> Dễ dàng xem lại các bài đã học
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-indigo-500">✓</span> Dễ dàng xuất dữ liệu hoặc chia sẻ tiến độ
+                <span className="text-indigo-500">✓</span> Nhận gợi ý bài học phù hợp với trình độ
               </li>
             </ul>
             <div className="mt-6">

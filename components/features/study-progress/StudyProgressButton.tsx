@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth/AuthContext';
 import Link from 'next/link';
 import { saveStudyProgress } from '@/lib/study-progress';
 
@@ -26,7 +26,7 @@ export default function StudyProgressButton({
   buttonStyle = 'bg-indigo-600 hover:bg-indigo-700',
   onComplete
 }: StudyProgressButtonProps) {
-  const { data: session } = useSession();
+  const { session } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -66,7 +66,7 @@ export default function StudyProgressButton({
     }
   };
 
-  if (!session) {
+  if (!session?.user) {
     return (
       <div className="mt-6">
         <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md p-4 mb-4">

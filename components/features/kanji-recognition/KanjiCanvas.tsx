@@ -3,6 +3,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import { KanjiItem } from "@/types";
+import Link from "next/link";
 
 interface KanjiCanvasProps {
   onRecognizeKanji: (kanjiData: KanjiItem | null) => void;
@@ -70,6 +71,37 @@ export default function KanjiCanvas({
     };
   }, []);
   
+  // Function to redraw all strokes (used after resizing)
+  const redrawCanvas = useCallback((context: CanvasRenderingContext2D) => {
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = context.canvas;
+    
+    context.clearRect(0, 0, canvas.width/dpr, canvas.height/dpr);
+    
+    // Draw all completed strokes
+    strokes.forEach(stroke => {
+      if (stroke.points.length < 2) return;
+      
+      context.beginPath();
+      context.moveTo(stroke.points[0].x, stroke.points[0].y);
+      
+      for (let i = 1; i < stroke.points.length; i++) {
+        const p0 = stroke.points[i - 1];
+        const p1 = stroke.points[i];
+        
+        // Use quadratic curves for smoother lines
+        const midPoint = {
+          x: (p0.x + p1.x) / 2,
+          y: (p0.y + p1.y) / 2
+        };
+        
+        context.quadraticCurveTo(p0.x, p0.y, midPoint.x, midPoint.y);
+      }
+      
+      context.stroke();
+    });
+  }, [strokes]);
+
   // Setup canvas with proper scaling and clean rendering
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -112,38 +144,7 @@ export default function KanjiCanvas({
     window.addEventListener('resize', resizeCanvas);
     
     return () => window.removeEventListener('resize', resizeCanvas);
-  }, [strokes]);
-
-  // Function to redraw all strokes (used after resizing)
-  const redrawCanvas = useCallback((context: CanvasRenderingContext2D) => {
-    const dpr = window.devicePixelRatio || 1;
-    const canvas = context.canvas;
-    
-    context.clearRect(0, 0, canvas.width/dpr, canvas.height/dpr);
-    
-    // Draw all completed strokes
-    strokes.forEach(stroke => {
-      if (stroke.points.length < 2) return;
-      
-      context.beginPath();
-      context.moveTo(stroke.points[0].x, stroke.points[0].y);
-      
-      for (let i = 1; i < stroke.points.length; i++) {
-        const p0 = stroke.points[i - 1];
-        const p1 = stroke.points[i];
-        
-        // Use quadratic curves for smoother lines
-        const midPoint = {
-          x: (p0.x + p1.x) / 2,
-          y: (p0.y + p1.y) / 2
-        };
-        
-        context.quadraticCurveTo(p0.x, p0.y, midPoint.x, midPoint.y);
-      }
-      
-      context.stroke();
-    });
-  }, [strokes]);
+  }, [strokes, redrawCanvas]);
 
   // Get correct coordinates relative to canvas
   const getCoordinates = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -297,7 +298,6 @@ export default function KanjiCanvas({
     const currentHasApiKey = !!savedApiKey;
     
     // Chuẩn bị canvas cho nhận dạng tốt hơn
-    const canvas = canvasRef.current;
     const tempCanvas = document.createElement('canvas');
     const size = 800; // Tăng kích thước lên 800px để chi tiết hơn
     
@@ -354,7 +354,7 @@ export default function KanjiCanvas({
     tempCtx.strokeStyle = "black";
     
     // Vẽ lại từng nét với tỷ lệ và căn giữa
-    strokes.forEach((stroke, strokeIndex) => {
+    strokes.forEach((stroke) => {
       if (stroke.points.length < 2) return;
       
       tempCtx.beginPath();
@@ -557,7 +557,7 @@ export default function KanjiCanvas({
           <li>Vẽ đầy đủ số nét của chữ Kanji</li>
           <li>Tránh vẽ quá nhỏ hoặc quá nhanh</li>
           <li>Vẽ theo thứ tự nét chuẩn của Kanji</li>
-          <li><strong>Sau khi vẽ xong, nhấn nút "Nhận dạng Kanji"</strong></li>
+          <li><strong>Sau khi vẽ xong, nhấn nút &quot;Nhận dạng Kanji&quot;</strong></li>
         </ul>
       </div>
       
@@ -648,7 +648,7 @@ export default function KanjiCanvas({
         )}
         {!hasApiKey && (
           <p className="text-xs text-gray-500 mt-1">
-            Để tránh tình trạng quá tải API, bạn có thể thiết lập API key riêng tại <a href="/" className="text-blue-600 underline">trang chủ</a>
+            Để tránh tình trạng quá tải API, bạn có thể thiết lập API key riêng tại <Link href="/" className="text-blue-600 underline">trang chủ</Link>
           </p>
         )}
       </div>

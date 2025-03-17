@@ -99,7 +99,11 @@ export default function GoogleApiKeyInput() {
       {showApiKeyInput && (
         <div className="space-y-2">
           <div className="text-xs text-gray-500 mb-1">
-            Để tránh tình trạng quá tải API khi nhiều người cùng sử dụng, bạn có thể dùng API key riêng của Google AI.
+            API key này sẽ được sử dụng cho các tính năng AI như nhận dạng Kanji và trò chuyện.
+            Bạn có thể lấy API key từ &quot;Google Cloud Console&quot;.
+          </div>
+          <div className="text-xs text-gray-500 mb-1">
+            Lưu ý: API key của bạn sẽ được lưu cục bộ và chỉ được sử dụng trong trình duyệt của bạn.
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -149,9 +153,9 @@ export default function GoogleApiKeyInput() {
             <ol className="list-decimal pl-5 text-gray-600">
               <li>Truy cập <a href="https://ai.google.dev/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Google AI Studio</a></li>
               <li>Tạo tài khoản Google (nếu chưa có)</li>
-              <li>Nhấn vào "Get API key" hoặc "Create API key"</li>
+              <li>Nhấn vào &quot;Get API key&quot; hoặc &quot;Create API key&quot;</li>
               <li>Làm theo hướng dẫn để tạo key mới</li>
-              <li>Dán API key vào đây và nhấn "Lưu"</li>
+              <li>Dán API key vào đây và nhấn &quot;Lưu&quot;</li>
             </ol>
             <p className="mt-1 text-gray-500">
               API key được lưu trong trình duyệt của bạn và không được gửi đến máy chủ của chúng tôi.

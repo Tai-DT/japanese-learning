@@ -165,10 +165,15 @@ const lessonSample = {
   }
 };
 
+interface Section {
+  title: string;
+  content: string;
+}
+
 export default function LessonDetail() {
   const router = useRouter();
   const params = useParams();
-  const [lesson, setLesson] = useState<any>(null);
+  const [lesson, setLesson] = useState<typeof lessonSample[keyof typeof lessonSample] | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSection, setSelectedSection] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
@@ -198,7 +203,17 @@ export default function LessonDetail() {
         setTimeSpent(minutesSpent);
       }
     };
-  }, [params, router]);
+  }, [params, router, startTime]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (startTime) {
+        setTimeSpent(Math.floor((Date.now() - startTime) / 1000));
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [startTime]);
 
   const handleComplete = () => {
     // Tính toán thời gian đã dành
@@ -226,7 +241,7 @@ export default function LessonDetail() {
     }
   };
 
-  if (loading) {
+  if (loading || !lesson) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
@@ -262,7 +277,7 @@ export default function LessonDetail() {
         <div className="md:col-span-1 bg-white p-4 rounded-lg shadow-sm">
           <h2 className="font-semibold mb-4">Nội dung bài học</h2>
           <ul className="space-y-2">
-            {lesson.sections.map((section: any, index: number) => (
+            {lesson.sections.map((section: Section, index: number) => (
               <li key={index}>
                 <button
                   onClick={() => handleSectionChange(index)}
@@ -283,7 +298,7 @@ export default function LessonDetail() {
           <div className="bg-white p-6 rounded-lg shadow-sm min-h-[400px]">
             {!completed ? (
               <>
-                <h2 className="text-xl font-bold mb-4">{lesson.sections[selectedSection].title}</h2>
+                <h2 className="text-xl font-bold mb-4">{lesson?.sections[selectedSection].title}</h2>
                 <div 
                   className="prose max-w-none"
                   dangerouslySetInnerHTML={{ __html: lesson.sections[selectedSection].content }}
@@ -311,7 +326,7 @@ export default function LessonDetail() {
             ) : (
               <div className="text-center py-10">
                 <h2 className="text-2xl font-bold text-green-600 mb-4">Chúc mừng!</h2>
-                <p className="text-lg mb-4">Bạn đã hoàn thành bài học "{lesson.title}".</p>
+                <p className="text-lg mb-4">Bạn đã hoàn thành bài học &quot;{lesson.title}&quot;</p>
                 <p className="mb-6">Thời gian học: <span className="font-bold">{timeSpent} phút</span></p>
                 
                 <StudyProgressButton 

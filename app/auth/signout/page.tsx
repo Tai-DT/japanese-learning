@@ -1,25 +1,25 @@
 'use client';
 
-import { signOut, useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useAuth } from '@/components/auth/AuthContext';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SignOut() {
-  const { data: session } = useSession();
+  const { session, signOut } = useAuth();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  useEffect(() => {
-    // Nếu người dùng không đăng nhập, chuyển hướng về trang đăng nhập
-    if (!session && !isLoggingOut) {
-      router.push('/auth/signin');
-    }
-  }, [session, router, isLoggingOut]);
+  // Nếu người dùng không đăng nhập, chuyển hướng về trang đăng nhập
+  if (!session?.user && !isLoggingOut) {
+    router.push('/auth/signin');
+    return null;
+  }
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     setIsLoggingOut(true);
-    await signOut({ callbackUrl: '/' });
+    signOut();
+    router.push('/');
   };
 
   return (

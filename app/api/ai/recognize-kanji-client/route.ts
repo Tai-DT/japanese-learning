@@ -14,6 +14,19 @@ const RECOGNITION_TIMEOUT_MS = 30000;
 const API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const MODEL_NAME = "gemini-2.0-flash";
 
+interface GeminiResponsePart {
+  text: string;
+}
+
+interface GeminiResponseContent {
+  parts: GeminiResponsePart[];
+}
+
+interface GeminiResponseCandidate {
+  content: GeminiResponseContent;
+  finishReason?: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -202,11 +215,6 @@ function extractJsonFromText<T>(text: string): T {
   }
 }
 
-// Hàm làm rõ nét hình ảnh để cải thiện chất lượng nhận diện
-function enhanceImageData(imageData: string): string {
-  return imageData;
-}
-
 // Gọi API Gemini trực tiếp từ client với API key người dùng
 async function recognizeKanjiFromImage(imageBase64: string, apiKey: string): Promise<KanjiItem> {
   try {
@@ -222,8 +230,8 @@ async function recognizeKanjiFromImage(imageBase64: string, apiKey: string): Pro
 
     // Xử lý dữ liệu hình ảnh cho API
     const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
-    const mimeType = imageBase64.startsWith('data:image/jpeg') ? 'image/jpeg' : 
-                   imageBase64.startsWith('data:image/jpg') ? 'image/jpg' : 'image/png';
+    const mimeType = imageBase64.startsWith('data:image/jpeg') ? 'image/jpeg' :
+                      imageBase64.startsWith('data:image/jpg') ? 'image/jpg' : 'image/png';
 
     // Tạo prompt để nhận dạng kanji
     const prompt = `Bạn là một chuyên gia về nhận dạng chữ Kanji với độ chính xác cao. Hãy phân tích hình ảnh được cung cấp.
@@ -330,7 +338,7 @@ Nếu HOÀN TOÀN không thể nhận ra chữ Kanji nào rõ ràng, hãy trả 
       throw new Error("No candidates in Gemini API response");
     }
     
-    const candidate = data.candidates[0];
+    const candidate = data.candidates[0] as GeminiResponseCandidate;
     
     // Check for finish reason other than STOP
     if (candidate.finishReason && candidate.finishReason !== "STOP") {
@@ -347,8 +355,8 @@ Nếu HOÀN TOÀN không thể nhận ra chữ Kanji nào rõ ràng, hãy trả 
     
     // Extract text from all parts
     const textParts = candidate.content.parts
-      .filter((part: any) => part.text)
-      .map((part: any) => part.text);
+      .filter((part: GeminiResponsePart) => part.text)
+      .map((part: GeminiResponsePart) => part.text);
     
     if (textParts.length === 0) {
       console.error("No text content in response:", candidate.content);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -16,7 +16,7 @@ type StudyData = {
 }
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { session, status } = useAuth();
   const router = useRouter();
   const [userStudyData, setUserStudyData] = useState<StudyData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,15 +33,36 @@ export default function ProfilePage() {
       if (session?.user?.id) {
         try {
           setLoading(true);
-          // Gọi API để lấy dữ liệu học tập của người dùng từ Google Sheets
-          const response = await fetch(`/api/user-data?userId=${session.user.id}`);
+          // Trong phiên bản không có NextAuth, chúng ta sẽ tạo dữ liệu mẫu
+          // thay vì gọi API thực tế
+          const sampleData: StudyData[] = [
+            {
+              date: new Date().toISOString(),
+              category: 'Vocabulary',
+              topic: 'Từ vựng cơ bản N5',
+              score: 85,
+              timeSpent: 15,
+              level: 'N5'
+            },
+            {
+              date: new Date(Date.now() - 86400000).toISOString(), // 1 ngày trước
+              category: 'Grammar',
+              topic: 'Cấu trúc -te form',
+              score: 92,
+              timeSpent: 25,
+              level: 'N5'
+            },
+            {
+              date: new Date(Date.now() - 172800000).toISOString(), // 2 ngày trước
+              category: 'Kanji',
+              topic: 'Kanji cơ bản N5 - Bài 1',
+              score: 78,
+              timeSpent: 20,
+              level: 'N5'
+            }
+          ];
           
-          if (response.ok) {
-            const data = await response.json();
-            setUserStudyData(data);
-          } else {
-            console.error('Failed to fetch user data');
-          }
+          setUserStudyData(sampleData);
         } catch (error) {
           console.error('Error fetching user data:', error);
         } finally {
@@ -94,7 +115,7 @@ export default function ProfilePage() {
         <>
           <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-              {session.user.image && (
+              {session.user.image ? (
                 <div className="relative h-24 w-24 rounded-full overflow-hidden">
                   <Image 
                     src={session.user.image} 
@@ -102,6 +123,10 @@ export default function ProfilePage() {
                     fill
                     className="object-cover"
                   />
+                </div>
+              ) : (
+                <div className="h-24 w-24 bg-indigo-200 rounded-full flex items-center justify-center text-indigo-700 text-4xl font-bold">
+                  {session.user.name?.charAt(0).toUpperCase() || "U"}
                 </div>
               )}
               
@@ -273,14 +298,9 @@ export default function ProfilePage() {
             )}
             
             <div className="mt-6 text-center">
-              <Link 
-                href="https://docs.google.com/spreadsheets/d/" 
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Xem dữ liệu đầy đủ trong Google Sheets →
-              </Link>
+              <p className="text-indigo-600 text-sm font-medium">
+                Trong phiên bản demo này, dữ liệu được lưu trữ cục bộ.
+              </p>
             </div>
           </div>
         </>
