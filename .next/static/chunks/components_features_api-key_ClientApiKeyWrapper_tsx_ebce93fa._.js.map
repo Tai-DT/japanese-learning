@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///Users/mac/Code/japanese-learning/components/features/api-key/ClientApiKeyWrapper.tsx"],"sourcesContent":["\"use client\";\n\nimport dynamic from \"next/dynamic\";\n\n// Sử dụng dynamic import trong Client Component là an toàn\nconst GoogleApiKeyInput = dynamic(\n  () => import(\"@/components/features/api-key/GoogleApiKeyInput\"),\n  { ssr: false }\n);\n\nexport default function ClientApiKeyWrapper() {\n  return <GoogleApiKeyInput />;\n} "],"names":[],"mappings":";;;;AAEA;;AAFA;;;AAIA,2DAA2D;AAC3D,MAAM,oBAAoB,CAAA,GAAA,kKAAA,CAAA,UAAO,AAAD,EAC9B;;;;;;IACE,KAAK;;KAFH;AAKS,SAAS;IACtB,qBAAO,6LAAC;;;;;AACV;MAFwB","debugId":null}}]
+}

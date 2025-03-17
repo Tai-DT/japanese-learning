@@ -1,0 +1,14 @@
+{
+  "/api/ai/chat/route": "/api/ai/chat",
+  "/_not-found/page": "/_not-found",
+  "/api/ai/recognize/route": "/api/ai/recognize",
+  "/api/ai/recognize-kanji/route": "/api/ai/recognize-kanji",
+  "/api/ai/vocabulary/route": "/api/ai/vocabulary",
+  "/api/ai/translate/route": "/api/ai/translate",
+  "/favicon.ico/route": "/favicon.ico",
+  "/page": "/",
+  "/grammar/page": "/grammar",
+  "/kanji/page": "/kanji",
+  "/conversation/page": "/conversation",
+  "/vocabulary/page": "/vocabulary"
+}

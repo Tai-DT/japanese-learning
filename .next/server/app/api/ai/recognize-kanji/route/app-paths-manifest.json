@@ -1,0 +1,3 @@
+{
+  "/api/ai/recognize-kanji/route": "app/api/ai/recognize-kanji/route.js"
+}

@@ -36,8 +36,40 @@ export default function KanjiCanvas({
   const [currentStroke, setCurrentStroke] = useState<StrokePoint[]>([]);
   
   const [hasDrawing, setHasDrawing] = useState(false);
-  const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  
+  // State để theo dõi nếu có API key được cấu hình
+  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  
+  // Kiểm tra và theo dõi sự thay đổi của API key trong localStorage
+  useEffect(() => {
+    // Kiểm tra ban đầu
+    const checkApiKey = () => {
+      const savedApiKey = localStorage.getItem('google_ai_api_key');
+      setHasApiKey(!!savedApiKey);
+    };
+    
+    // Kiểm tra ngay lập tức
+    checkApiKey();
+    
+    // Tạo một event listener để phát hiện thay đổi từ các tab/window khác
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'google_ai_api_key') {
+        checkApiKey();
+      }
+    };
+    
+    // Thêm event listener cho storage
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Kiểm tra định kỳ mỗi 5 giây để đảm bảo đồng bộ
+    const intervalId = setInterval(checkApiKey, 5000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
+  }, []);
+  
   // Setup canvas with proper scaling and clean rendering
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -48,13 +80,24 @@ export default function KanjiCanvas({
       const canvas = canvasRef.current;
       if (!canvas) return;
       
+      const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      
+      // Thiết lập kích thước canvas với devicePixelRatio để vẽ rõ nét hơn
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      
+      // Thiết lập style để hiển thị đúng kích thước
+      canvas.style.width = `${rect.width}px`; 
+      canvas.style.height = `${rect.height}px`;
       
       const context = canvas.getContext('2d', { willReadFrequently: true });
       if (context) {
-        context.lineWidth = 8;
+        // Áp dụng scale theo devicePixelRatio
+        context.scale(dpr, dpr);
+        
+        // Thiết lập nét vẽ đậm và rõ hơn
+        context.lineWidth = 12; // Tăng độ đậm của nét vẽ
         context.lineCap = "round";
         context.lineJoin = "round";
         context.strokeStyle = "black";
@@ -73,7 +116,10 @@ export default function KanjiCanvas({
 
   // Function to redraw all strokes (used after resizing)
   const redrawCanvas = useCallback((context: CanvasRenderingContext2D) => {
-    context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = context.canvas;
+    
+    context.clearRect(0, 0, canvas.width/dpr, canvas.height/dpr);
     
     // Draw all completed strokes
     strokes.forEach(stroke => {
@@ -104,12 +150,11 @@ export default function KanjiCanvas({
     if (!canvasRef.current) return { x: 0, y: 0 };
     
     const rect = canvasRef.current.getBoundingClientRect();
-    const scaleX = canvasRef.current.width / rect.width;
-    const scaleY = canvasRef.current.height / rect.height;
+    // Không áp dụng scale ở đây, vì đã xử lý bằng context.scale()
     
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
     };
   };
 
@@ -118,6 +163,12 @@ export default function KanjiCanvas({
     if (!ctx) return;
     
     e.preventDefault();
+    
+    // Bắt giữ pointer để tránh mất sự kiện khi vẽ nhanh
+    if (canvasRef.current) {
+      canvasRef.current.setPointerCapture(e.pointerId);
+    }
+    
     setIsDrawing(true);
     
     const point = getCoordinates(e);
@@ -128,11 +179,6 @@ export default function KanjiCanvas({
     
     ctx.beginPath();
     ctx.moveTo(point.x, point.y);
-    
-    // Cancel any pending recognition
-    if (recognitionTimeoutRef.current) {
-      clearTimeout(recognitionTimeoutRef.current);
-    }
   };
 
   // Update the stroke as the user continues drawing
@@ -141,6 +187,15 @@ export default function KanjiCanvas({
     
     e.preventDefault();
     const currentPoint = getCoordinates(e);
+    
+    // Kiểm tra khoảng cách quá nhỏ để tránh quá nhiều điểm
+    const distance = Math.sqrt(
+      Math.pow(currentPoint.x - lastPoint.x, 2) + 
+      Math.pow(currentPoint.y - lastPoint.y, 2)
+    );
+    
+    // Bỏ qua các điểm quá gần nhau
+    if (distance < 2) return;
     
     // Update current stroke data
     setCurrentStroke(prev => [...prev, currentPoint]);
@@ -167,11 +222,16 @@ export default function KanjiCanvas({
     setLastPoint(currentPoint);
   };
 
-  // Complete the stroke and trigger real-time recognition
+  // Complete the stroke but don't trigger automatic recognition
   const endDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !ctx || !lastPoint) return;
     
     e.preventDefault();
+    
+    // Giải phóng pointer capture
+    if (canvasRef.current) {
+      canvasRef.current.releasePointerCapture(e.pointerId);
+    }
     
     // Complete the final line segment
     const currentPoint = getCoordinates(e);
@@ -187,29 +247,35 @@ export default function KanjiCanvas({
     
     setIsDrawing(false);
     setLastPoint(null);
-    
-    // Trigger real-time recognition with debouncing (800ms delay)
-    if (recognitionTimeoutRef.current) {
-      clearTimeout(recognitionTimeoutRef.current);
-    }
-    
-    recognitionTimeoutRef.current = setTimeout(() => {
-      // Only recognize if we have some drawing
-      if (hasDrawing) {
-        recognizeKanjiRealTime();
+  };
+
+  // Xử lý sự kiện khi pointer rời khỏi khu vực canvas nhưng người dùng vẫn đang vẽ
+  const handlePointerLeave = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    // Chỉ xử lý khi đang vẽ
+    if (isDrawing && ctx && lastPoint) {
+      // Ghi nhận nét vẽ hiện tại
+      setStrokes(prev => [...prev, { points: [...currentStroke] }]);
+      setCurrentStroke([]);
+      setIsDrawing(false);
+      setLastPoint(null);
+      
+      // Giải phóng pointer capture
+      if (canvasRef.current) {
+        canvasRef.current.releasePointerCapture(e.pointerId);
       }
-    }, 800);
+    }
   };
 
   // Clear the canvas and reset all state
   const clearCanvas = () => {
     if (!ctx || !canvasRef.current) return;
     
+    const dpr = window.devicePixelRatio || 1;
     ctx.clearRect(
       0, 
       0, 
-      canvasRef.current.width, 
-      canvasRef.current.height
+      canvasRef.current.width/dpr, 
+      canvasRef.current.height/dpr
     );
     
     setStrokes([]);
@@ -217,49 +283,6 @@ export default function KanjiCanvas({
     setHasDrawing(false);
     onRecognizeKanji(null);
     setError(null);
-    
-    if (recognitionTimeoutRef.current) {
-      clearTimeout(recognitionTimeoutRef.current);
-    }
-  };
-
-  // Automatic recognition after stroke completion
-  const recognizeKanjiRealTime = async () => {
-    if (!canvasRef.current || isLoading || !hasDrawing) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const canvas = canvasRef.current;
-      const imageData = canvas.toDataURL('image/png', 1.0);
-      
-      // Send to API for recognition
-      const response = await fetch('/api/ai/recognize-kanji', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageData }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to recognize kanji');
-      }
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Recognition failed');
-      }
-      
-      onRecognizeKanji(data.kanji);
-    } catch (error: unknown) {
-      console.error('Error in real-time kanji recognition:', error);
-      if (error instanceof Error) {
-        setError(`Không thể nhận dạng tự động: ${error.message}`);
-      }
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   // Manual recognition when clicking the button
@@ -269,28 +292,148 @@ export default function KanjiCanvas({
       return;
     }
     
+    // Lấy API key mới nhất từ localStorage
+    const savedApiKey = localStorage.getItem('google_ai_api_key');
+    const currentHasApiKey = !!savedApiKey;
+    
+    // Chuẩn bị canvas cho nhận dạng tốt hơn
+    const canvas = canvasRef.current;
+    const tempCanvas = document.createElement('canvas');
+    const size = 800; // Tăng kích thước lên 800px để chi tiết hơn
+    
+    tempCanvas.width = size;
+    tempCanvas.height = size;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    
+    if (!tempCtx) {
+      setError("Không thể tạo canvas tạm thời");
+      return;
+    }
+    
+    // Vẽ nền trắng
+    tempCtx.fillStyle = 'white';
+    tempCtx.fillRect(0, 0, size, size);
+    
+    // Tính toán tọa độ của tất cả các nét vẽ để xác định vùng vẽ
+    let allPoints: StrokePoint[] = [];
+    strokes.forEach(stroke => {
+      allPoints = [...allPoints, ...stroke.points];
+    });
+    
+    if (allPoints.length === 0) {
+      setError("Không có đủ dữ liệu nét vẽ");
+      return;
+    }
+    
+    // Tìm tọa độ giới hạn của nét vẽ
+    const minX = Math.min(...allPoints.map(p => p.x));
+    const minY = Math.min(...allPoints.map(p => p.y));
+    const maxX = Math.max(...allPoints.map(p => p.x));
+    const maxY = Math.max(...allPoints.map(p => p.y));
+    
+    // Tính toán kích thước và vị trí trung tâm
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const centerX = minX + width / 2;
+    const centerY = minY + height / 2;
+    
+    // Để tránh các nét vẽ quá nhỏ hoặc quá lớn, tính toán tỷ lệ phù hợp
+    const maxDimension = Math.max(width, height);
+    // Sử dụng 70% không gian canvas để kanji không bị quá nhỏ hoặc quá lớn
+    const targetSize = size * 0.7;
+    let scaleFactor = targetSize / maxDimension;
+    
+    // Giới hạn tỷ lệ tối thiểu và tối đa
+    if (scaleFactor < 1) scaleFactor = 1;
+    if (scaleFactor > 10) scaleFactor = 10;
+    
+    // Cấu hình vẽ cho nét đậm, rõ ràng
+    tempCtx.lineWidth = 26; // Tăng độ đậm hơn nữa
+    tempCtx.lineCap = "round";
+    tempCtx.lineJoin = "round";
+    tempCtx.strokeStyle = "black";
+    
+    // Vẽ lại từng nét với tỷ lệ và căn giữa
+    strokes.forEach((stroke, strokeIndex) => {
+      if (stroke.points.length < 2) return;
+      
+      tempCtx.beginPath();
+      
+      // Vẽ từng nét với tỷ lệ mới và căn giữa
+      const canvasCenterX = size / 2;
+      const canvasCenterY = size / 2;
+      
+      const startX = (stroke.points[0].x - centerX) * scaleFactor + canvasCenterX;
+      const startY = (stroke.points[0].y - centerY) * scaleFactor + canvasCenterY;
+      
+      tempCtx.moveTo(startX, startY);
+      
+      for (let i = 1; i < stroke.points.length; i++) {
+        const p0 = stroke.points[i - 1];
+        const p1 = stroke.points[i];
+        
+        const x0 = (p0.x - centerX) * scaleFactor + canvasCenterX;
+        const y0 = (p0.y - centerY) * scaleFactor + canvasCenterY;
+        const x1 = (p1.x - centerX) * scaleFactor + canvasCenterX;
+        const y1 = (p1.y - centerY) * scaleFactor + canvasCenterY;
+        
+        // Sử dụng đường cong Bezier cho nét mượt
+        if (i === 1) {
+          // Nét đầu tiên dùng đường thẳng
+          tempCtx.lineTo(x1, y1);
+        } else {
+          // Các nét tiếp theo dùng đường cong
+          const midX = (x0 + x1) / 2;
+          const midY = (y0 + y1) / 2;
+          tempCtx.quadraticCurveTo(x0, y0, midX, midY);
+        }
+      }
+      
+      // Vẽ nét cuối
+      const lastPoint = stroke.points[stroke.points.length - 1];
+      const lastX = (lastPoint.x - centerX) * scaleFactor + canvasCenterX;
+      const lastY = (lastPoint.y - centerY) * scaleFactor + canvasCenterY;
+      tempCtx.lineTo(lastX, lastY);
+      
+      tempCtx.stroke();
+    });
+    
+    // Thêm bước xử lý hình ảnh để làm rõ nét vẽ
+    enhanceImage(tempCtx, size);
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      const canvas = canvasRef.current;
-      const imageData = canvas.toDataURL('image/png', 1.0);
+      // Lấy dữ liệu từ canvas tạm thời với chất lượng cao
+      const imageData = tempCanvas.toDataURL('image/png', 1.0);
       
       console.log("Image data length:", imageData.length);
       
-      const response = await fetch('/api/ai/recognize-kanji', {
+      // Sử dụng API phù hợp dựa vào lựa chọn của người dùng
+      const apiEndpoint = currentHasApiKey ? '/api/ai/recognize-kanji-client' : '/api/ai/recognize-kanji';
+      
+      const requestBody = currentHasApiKey 
+        ? { image: imageData, apiKey: savedApiKey } 
+        : { image: imageData };
+      
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          image: imageData 
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       const data = await response.json();
       
       if (!response.ok) {
+        // Xử lý lỗi API key
+        if (currentHasApiKey && response.status === 401) {
+          setError("API key không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại key tại trang chủ.");
+          throw new Error('API key không hợp lệ');
+        }
+        
         if (response.status === 500 && data.error?.includes('deprecated')) {
           throw new Error('AI model has been deprecated. Please contact admin for an update.');
         }
@@ -301,12 +444,22 @@ export default function KanjiCanvas({
         throw new Error(data.error || 'Recognition failed');
       }
       
+      if (!data.kanji || !data.kanji.character) {
+        throw new Error('Invalid response format from server');
+      }
+      
       onRecognizeKanji(data.kanji);
     } catch (error: unknown) {
       console.error('Error recognizing kanji:', error);
       if (error instanceof Error) {
         if (error.message?.includes('deprecated')) {
           setError("Hệ thống AI đã lỗi thời. Vui lòng liên hệ quản trị viên để cập nhật.");
+        } else if (error.message?.includes('Invalid image format')) {
+          setError("Định dạng ảnh không hợp lệ. Vui lòng thử vẽ lại.");
+        } else if (error.message?.includes('Invalid response format')) {
+          setError("Lỗi định dạng dữ liệu từ máy chủ. Vui lòng thử lại.");
+        } else if (error.message?.includes('API key không hợp lệ')) {
+          // Lỗi đã được xử lý ở trên
         } else {
           setError(`Không thể nhận dạng Kanji: ${error.message || 'Đã xảy ra lỗi'}. Vui lòng thử lại.`);
         }
@@ -316,6 +469,39 @@ export default function KanjiCanvas({
       onRecognizeKanji(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Hàm xử lý hình ảnh để làm rõ nét vẽ
+  const enhanceImage = (ctx: CanvasRenderingContext2D, size: number) => {
+    try {
+      // Lấy dữ liệu hình ảnh
+      const imageData = ctx.getImageData(0, 0, size, size);
+      const data = imageData.data;
+      
+      // Xử lý tăng độ tương phản
+      for (let i = 0; i < data.length; i += 4) {
+        // Nếu pixel gần đen (nét vẽ), làm cho nó hoàn toàn đen
+        if (data[i] < 128) {
+          data[i] = 0;      // R
+          data[i + 1] = 0;  // G
+          data[i + 2] = 0;  // B
+        } 
+        // Nếu pixel gần trắng (nền), làm cho nó hoàn toàn trắng
+        else {
+          data[i] = 255;    // R
+          data[i + 1] = 255;// G
+          data[i + 2] = 255;// B
+        }
+        // Giữ nguyên kênh alpha
+        data[i + 3] = data[i + 3];
+      }
+      
+      // Cập nhật lại hình ảnh
+      ctx.putImageData(imageData, 0, 0);
+    } catch (error) {
+      console.error("Error enhancing image:", error);
+      // Tiếp tục mà không có xử lý nâng cao
     }
   };
 
@@ -328,7 +514,7 @@ export default function KanjiCanvas({
           onPointerDown={startDrawing}
           onPointerMove={draw}
           onPointerUp={endDrawing}
-          onPointerOut={endDrawing}
+          onPointerLeave={handlePointerLeave}
           style={{ touchAction: "none" }} // Prevent scrolling on touch
         />
       </div>
@@ -357,11 +543,115 @@ export default function KanjiCanvas({
           {typeof error === 'string' && error.includes('AI đã lỗi thời') && (
             <p className="mt-1 text-xs">
               Chi tiết kỹ thuật: Gemini 1.0 Pro Vision đã ngừng hoạt động từ 12/7/2024. 
-              Cần cập nhật lên gemini-1.5-flash.
+              Cần cập nhật lên gemini-2.0-flash.
             </p>
           )}
         </div>
       )}
+      
+      <div className="text-xs text-gray-500 mt-2">
+        <p className="font-medium">Hướng dẫn vẽ Kanji tốt nhất:</p>
+        <ul className="list-disc pl-5 mt-1">
+          <li>Vẽ to, rõ ràng và đầy đủ nét</li>
+          <li>Vẽ chính giữa canvas</li>
+          <li>Vẽ đầy đủ số nét của chữ Kanji</li>
+          <li>Tránh vẽ quá nhỏ hoặc quá nhanh</li>
+          <li>Vẽ theo thứ tự nét chuẩn của Kanji</li>
+          <li><strong>Sau khi vẽ xong, nhấn nút "Nhận dạng Kanji"</strong></li>
+        </ul>
+      </div>
+      
+      <div className="text-center mt-2">
+        <button
+          onClick={() => {
+            if (canvasRef.current) {
+              // Vẽ ví dụ mẫu kanji đơn giản
+              clearCanvas();
+              // Để phòng khi clearCanvas chưa xong, chờ một tick
+              setTimeout(() => {
+                const ctx = canvasRef.current?.getContext('2d');
+                if (ctx) {
+                  // Vẽ kanji 日 (nhật) như một ví dụ
+                  const centerX = (canvasRef.current?.width || 0) / 2;
+                  const centerY = (canvasRef.current?.height || 0) / 2;
+                  const size = 100;
+                  
+                  // Vẽ hình vuông ngoài
+                  ctx.beginPath();
+                  ctx.moveTo(centerX - size, centerY - size);
+                  ctx.lineTo(centerX + size, centerY - size);
+                  ctx.lineTo(centerX + size, centerY + size);
+                  ctx.lineTo(centerX - size, centerY + size);
+                  ctx.lineTo(centerX - size, centerY - size);
+                  ctx.stroke();
+                  
+                  // Vẽ đường ngang ở giữa
+                  ctx.beginPath();
+                  ctx.moveTo(centerX - size, centerY);
+                  ctx.lineTo(centerX + size, centerY);
+                  ctx.stroke();
+                  
+                  // Vẽ đường dọc ở giữa
+                  ctx.beginPath();
+                  ctx.moveTo(centerX, centerY - size);
+                  ctx.lineTo(centerX, centerY + size);
+                  ctx.stroke();
+                  
+                  setHasDrawing(true);
+                  setStrokes([
+                    {
+                      points: [
+                        {x: centerX - size, y: centerY - size},
+                        {x: centerX + size, y: centerY - size},
+                        {x: centerX + size, y: centerY + size},
+                        {x: centerX - size, y: centerY + size},
+                        {x: centerX - size, y: centerY - size}
+                      ]
+                    },
+                    {
+                      points: [
+                        {x: centerX - size, y: centerY},
+                        {x: centerX + size, y: centerY}
+                      ]
+                    },
+                    {
+                      points: [
+                        {x: centerX, y: centerY - size},
+                        {x: centerX, y: centerY + size}
+                      ]
+                    }
+                  ]);
+                }
+              }, 100);
+            }
+          }}
+          className="text-sm text-blue-600 underline"
+        >
+          Vẽ kanji mẫu để thử nghiệm
+        </button>
+      </div>
+      
+      {/* Hiển thị trạng thái của API key */}
+      <div className="mt-4 text-center">
+        <div className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-gray-100">
+          <span className={`w-2 h-2 rounded-full mr-2 ${hasApiKey ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+          <span>
+            {hasApiKey 
+              ? "Đang sử dụng API key riêng từ trang chủ" 
+              : "Đang sử dụng API key hệ thống"}
+          </span>
+        </div>
+        {hasApiKey && (
+          <p className="text-xs text-gray-500 mt-1">
+            Thay đổi API key tại trang chủ
+          </p>
+        )}
+        {!hasApiKey && (
+          <p className="text-xs text-gray-500 mt-1">
+            Để tránh tình trạng quá tải API, bạn có thể thiết lập API key riêng tại <a href="/" className="text-blue-600 underline">trang chủ</a>
+          </p>
+        )}
+      </div>
       
       {isLoading && (
         <div className="flex items-center justify-center py-2 text-sm text-blue-600">

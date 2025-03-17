@@ -1,0 +1,9 @@
+{
+  "[project]/components/features/api-key/GoogleApiKeyInput.tsx [app-client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/components/features/api-key/GoogleApiKeyInput.tsx [app-client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/components_features_api-key_GoogleApiKeyInput_tsx_4a52fd42._.js",
+      "static/chunks/components_features_api-key_GoogleApiKeyInput_tsx_b607e8b3._.js"
+    ]
+  }
+}
