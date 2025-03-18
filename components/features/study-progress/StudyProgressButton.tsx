@@ -1,116 +1,113 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/components/auth/AuthContext';
-import Link from 'next/link';
-import { saveStudyProgress } from '@/lib/study-progress';
 
 interface StudyProgressButtonProps {
-  category: string;
-  topic: string;
+  lessonId?: number;
+  exerciseId?: number;
   score?: number;
   timeSpent?: number;
-  level?: string;
-  buttonText?: string;
-  buttonStyle?: string;
+  completed?: boolean;
   onComplete?: () => void;
 }
 
-export default function StudyProgressButton({
-  category,
-  topic,
-  score,
+// Thêm interface cho completed exercise
+interface CompletedExercise {
+  id: number;
+  score: number;
+  timeSpent: number;
+  completedAt: string;
+}
+
+/**
+ * Nút Hoàn thành/Lưu tiến độ học tập đơn giản không yêu cầu đăng nhập
+ */
+export default function StudyProgressButton({ 
+  lessonId, 
+  exerciseId, 
+  score, 
   timeSpent,
-  level,
-  buttonText = 'Hoàn thành bài học',
-  buttonStyle = 'bg-indigo-600 hover:bg-indigo-700',
-  onComplete
+  completed,
+  onComplete 
 }: StudyProgressButtonProps) {
-  const { session } = useAuth();
-  const [saving, setSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleSaveProgress = async () => {
-    if (!session?.user?.id) {
-      setError('Bạn cần đăng nhập để lưu tiến độ học tập');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError('');
-
-      const success = await saveStudyProgress({
-        userId: session.user.id,
-        category,
-        topic,
-        score,
-        timeSpent,
-        level
-      });
-
-      if (success) {
-        setSaved(true);
-        if (onComplete) {
-          onComplete();
+  const handleSaveProgress = () => {
+    // Giả lập việc lưu tiến độ
+    setIsSaving(true);
+    
+    setTimeout(() => {
+      setIsSaving(false);
+      setSaved(true);
+      
+      // Lưu vào localStorage
+      if (lessonId) {
+        const completedLessons = JSON.parse(localStorage.getItem('completed-lessons') || '[]');
+        if (!completedLessons.includes(lessonId)) {
+          completedLessons.push(lessonId);
+          localStorage.setItem('completed-lessons', JSON.stringify(completedLessons));
         }
-      } else {
-        setError('Có lỗi xảy ra khi lưu tiến độ học tập');
       }
-    } catch (err) {
-      console.error('Lỗi khi lưu tiến độ:', err);
-      setError('Có lỗi xảy ra khi lưu tiến độ học tập');
-    } finally {
-      setSaving(false);
-    }
+      
+      if (exerciseId) {
+        const exerciseData: CompletedExercise = {
+          id: exerciseId,
+          score: score || 0,
+          timeSpent: timeSpent || 0,
+          completedAt: new Date().toISOString()
+        };
+        
+        const completedExercises = JSON.parse(localStorage.getItem('completed-exercises') || '[]') as CompletedExercise[];
+        const existingIndex = completedExercises.findIndex((item: CompletedExercise) => item.id === exerciseId);
+        
+        if (existingIndex >= 0) {
+          completedExercises[existingIndex] = exerciseData;
+        } else {
+          completedExercises.push(exerciseData);
+        }
+        
+        localStorage.setItem('completed-exercises', JSON.stringify(completedExercises));
+      }
+      
+      // Gọi callback onComplete nếu có
+      if (onComplete) {
+        onComplete();
+      }
+    }, 1000);
   };
 
-  if (!session?.user) {
+  if (saved) {
     return (
-      <div className="mt-6">
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md p-4 mb-4">
-          <p>Bạn cần đăng nhập để lưu tiến độ học tập.</p>
-        </div>
-        <Link 
-          href="/auth/signin"
-          className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
-        >
-          Đăng nhập để lưu tiến độ
-        </Link>
+      <div className="bg-green-100 text-green-800 px-4 py-3 rounded-md flex items-center">
+        <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+        </svg>
+        <span>Tiến độ đã được lưu thành công!</span>
       </div>
     );
   }
 
   return (
-    <div className="mt-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-4">
-          <p>{error}</p>
-        </div>
-      )}
-
-      {saved ? (
-        <div className="bg-green-50 border border-green-200 text-green-800 rounded-md p-4 mb-4">
-          <p>Tiến độ học tập đã được lưu thành công!</p>
-          <div className="mt-3">
-            <Link 
-              href="/profile"
-              className="text-green-700 font-medium hover:underline"
-            >
-              Xem tiến độ học tập của bạn →
-            </Link>
-          </div>
-        </div>
+    <button
+      onClick={handleSaveProgress}
+      disabled={isSaving || completed}
+      className={`px-4 py-2 rounded-md ${
+        completed
+          ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+      }`}
+    >
+      {isSaving ? (
+        <>
+          <span className="inline-block mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+          Đang lưu...
+        </>
+      ) : completed ? (
+        'Đã hoàn thành'
       ) : (
-        <button
-          onClick={handleSaveProgress}
-          disabled={saving}
-          className={`${buttonStyle} text-white px-6 py-3 rounded-lg font-medium transition-colors w-full md:w-auto ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-        >
-          {saving ? 'Đang lưu...' : buttonText}
-        </button>
+        'Hoàn thành & Lưu tiến độ'
       )}
-    </div>
+    </button>
   );
 } 

@@ -258,96 +258,88 @@ export default function LessonDetail() {
         </Link>
       </div>
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">{lesson.title}</h1>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="bg-indigo-100 text-indigo-800 text-sm font-medium px-2 py-1 rounded">
-            {lesson.category}
-          </span>
-          <span className="bg-indigo-100 text-indigo-800 text-sm font-medium px-2 py-1 rounded">
-            {lesson.level}
-          </span>
-          <span className="text-gray-600">
-            <span className="font-medium">Thời gian:</span> {lesson.duration}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white p-4 rounded-lg shadow-sm">
-          <h2 className="font-semibold mb-4">Nội dung bài học</h2>
-          <ul className="space-y-2">
-            {lesson.sections.map((section: Section, index: number) => (
-              <li key={index}>
-                <button
-                  onClick={() => handleSectionChange(index)}
-                  className={`text-left w-full px-3 py-2 rounded-md transition-colors ${
-                    selectedSection === index 
-                      ? 'bg-indigo-100 text-indigo-800' 
-                      : 'hover:bg-gray-100'
-                  }`}
-                >
-                  {index + 1}. {section.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="md:col-span-3">
-          <div className="bg-white p-6 rounded-lg shadow-sm min-h-[400px]">
-            {!completed ? (
-              <>
-                <h2 className="text-xl font-bold mb-4">{lesson?.sections[selectedSection].title}</h2>
-                <div 
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: lesson.sections[selectedSection].content }}
-                ></div>
-                
-                <div className="mt-8 flex justify-between">
-                  <button
-                    onClick={prevSection}
-                    className={`px-4 py-2 border border-gray-300 rounded-md ${
-                      selectedSection === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
-                    }`}
-                    disabled={selectedSection === 0}
-                  >
-                    ← Phần trước
-                  </button>
-                  
-                  <button
-                    onClick={nextSection}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                  >
-                    {selectedSection === lesson.sections.length - 1 ? 'Hoàn thành' : 'Phần tiếp theo →'}
-                  </button>
-                </div>
-              </>
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">{lesson.title}</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded">
+                {lesson.category}
+              </span>
+              <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded">
+                {lesson.level}
+              </span>
+              <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded">
+                {lesson.duration}
+              </span>
+            </div>
+          </div>
+          <div>
+            {completed ? (
+              <StudyProgressButton
+                lessonId={lesson.id}
+                timeSpent={timeSpent}
+                completed={true}
+              />
             ) : (
-              <div className="text-center py-10">
-                <h2 className="text-2xl font-bold text-green-600 mb-4">Chúc mừng!</h2>
-                <p className="text-lg mb-4">Bạn đã hoàn thành bài học &quot;{lesson.title}&quot;</p>
-                <p className="mb-6">Thời gian học: <span className="font-bold">{timeSpent} phút</span></p>
-                
-                <StudyProgressButton 
-                  category={lesson.category}
-                  topic={lesson.title}
-                  timeSpent={timeSpent}
-                  level={lesson.level}
-                  buttonText="Lưu tiến độ học tập"
-                />
-                
-                <div className="mt-8">
-                  <Link 
-                    href="/lessons" 
-                    className="text-indigo-600 hover:text-indigo-800 font-medium"
-                  >
-                    Quay lại danh sách bài học
-                  </Link>
-                </div>
-              </div>
+              <span className="text-sm text-gray-500">
+                Thời gian: {Math.floor(timeSpent / 60)}:{(timeSpent % 60).toString().padStart(2, '0')}
+              </span>
             )}
           </div>
+        </div>
+
+        <div className="mb-6 border-b pb-4">
+          <div className="flex space-x-4 mb-2 overflow-x-auto">
+            {lesson.sections.map((section: Section, index: number) => (
+              <button
+                key={index}
+                onClick={() => handleSectionChange(index)}
+                className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap ${
+                  selectedSection === index 
+                    ? 'bg-indigo-100 text-indigo-800' 
+                    : 'text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                {index + 1}. {section.title}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="prose prose-indigo max-w-none">
+          <h2 className="text-xl font-semibold mb-4">{lesson.sections[selectedSection].title}</h2>
+          <div dangerouslySetInnerHTML={{ __html: lesson.sections[selectedSection].content }}></div>
+        </div>
+
+        <div className="mt-8 flex justify-between">
+          <button
+            onClick={prevSection}
+            disabled={selectedSection === 0}
+            className={`px-4 py-2 rounded-md ${
+              selectedSection === 0 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+            }`}
+          >
+            ← Phần trước
+          </button>
+          
+          {selectedSection < lesson.sections.length - 1 ? (
+            <button
+              onClick={nextSection}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Phần tiếp theo →
+            </button>
+          ) : (
+            <StudyProgressButton
+              lessonId={lesson.id}
+              timeSpent={timeSpent}
+              completed={completed}
+              onComplete={handleComplete}
+            />
+          )}
         </div>
       </div>
     </div>

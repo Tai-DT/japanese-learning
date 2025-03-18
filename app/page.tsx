@@ -58,12 +58,6 @@ export default function Home() {
           >
             Bắt Đầu Học Ngay
           </Link>
-          <Link 
-            href="/auth/signin" 
-            className="border border-indigo-600 text-indigo-600 px-6 py-3 rounded-lg font-medium hover:bg-indigo-50 transition-colors"
-          >
-            Đăng Nhập Để Lưu Tiến Độ
-          </Link>
         </div>
       </section>
 
@@ -123,49 +117,6 @@ export default function Home() {
               height={300}
               className="rounded-lg"
             />
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-indigo-50 p-8 rounded-xl">
-        <h2 className="text-2xl font-bold mb-6 text-center">Lưu Trữ Dữ Liệu Học Tập</h2>
-        <div className="flex flex-col md:flex-row items-center gap-8">
-          <div className="md:w-1/2">
-            <Image 
-              src="/images/data-storage.png" 
-              alt="Data Storage" 
-              width={500} 
-              height={300}
-              className="rounded-lg"
-            />
-          </div>
-          <div className="md:w-1/2">
-            <h3 className="text-xl font-semibold mb-3">Tiến độ học tập luôn được lưu lại</h3>
-            <p className="mb-4">
-              Bằng cách đăng nhập vào ứng dụng, dữ liệu học tập của bạn sẽ được lưu trữ cục bộ, giúp bạn:
-            </p>
-            <ul className="space-y-2">
-              <li className="flex items-center gap-2">
-                <span className="text-indigo-500">✓</span> Theo dõi tiến độ học tập
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-indigo-500">✓</span> Lưu lại kết quả bài tập
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-indigo-500">✓</span> Dễ dàng xem lại các bài đã học
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-indigo-500">✓</span> Nhận gợi ý bài học phù hợp với trình độ
-              </li>
-            </ul>
-            <div className="mt-6">
-              <Link 
-                href="/auth/signin" 
-                className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition-colors inline-block"
-              >
-                Đăng Nhập Ngay
-              </Link>
-            </div>
           </div>
         </div>
       </section>

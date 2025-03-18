@@ -248,26 +248,17 @@ export default function ExerciseDetail() {
           </div>
         )}
 
-        {/* Nội dung bài tập - Ngữ pháp */}
+        {/* Nội dung bài tập - Câu hỏi */}
         {exercise && isQuestionExercise(exercise) && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Câu hỏi</h2>
-            <div className="space-y-4">
-              {exercise.questions.map((q: Question, index: number) => (
-                <div key={index} className="border rounded-lg p-4 bg-white shadow-sm">
-                  <p className="font-medium mb-2">{q.question}</p>
-                  <div className="mt-4">
-                    <button
-                      onClick={() => toggleCard(index)}
-                      className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                    >
-                      {flipped[index] ? 'Ẩn đáp án' : 'Xem đáp án'}
-                    </button>
-                    {flipped[index] && (
-                      <div className="mt-2 p-2 bg-green-50 rounded">
-                        <p className="text-green-800">{q.answer}</p>
-                      </div>
-                    )}
+            <h2 className="text-xl font-semibold mb-4">Bài tập câu hỏi</h2>
+            <div className="space-y-6">
+              {exercise.questions.map((question: Question, index: number) => (
+                <div key={index} className="border rounded-lg p-4 shadow-sm">
+                  <p className="font-medium mb-3">Câu {index + 1}: {question.question}</p>
+                  <div className="bg-gray-50 p-3 rounded mt-2">
+                    <p className="text-sm font-medium text-gray-700">Đáp án:</p>
+                    <p className="text-sm mt-1">{question.answer}</p>
                   </div>
                 </div>
               ))}
@@ -278,19 +269,20 @@ export default function ExerciseDetail() {
         {/* Nội dung bài tập - Kanji */}
         {exercise && isKanjiExercise(exercise) && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Kanji</h2>
-            <div className="space-y-4">
+            <h2 className="text-xl font-semibold mb-4">Luyện tập Kanji</h2>
+            <div className="grid grid-cols-1 gap-4">
               {exercise.kanjis.map((kanji: Kanji, index: number) => (
-                <div key={index} className="border rounded-lg p-4 bg-white shadow-sm">
-                  <div className="flex flex-col md:flex-row md:items-center gap-4">
-                    <div className="text-7xl font-bold text-center text-gray-800 md:w-1/4">
-                      {kanji.kanji}
+                <div key={index} className="border rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
+                    <div className="text-5xl font-bold mr-4">{kanji.kanji}</div>
+                    <div>
+                      <p className="font-medium mb-1">{kanji.meaning}</p>
+                      <p className="text-sm text-gray-600">Onyomi: {kanji.onyomi}</p>
+                      <p className="text-sm text-gray-600">Kunyomi: {kanji.kunyomi}</p>
                     </div>
-                    <div className="md:w-3/4">
-                      <p><span className="font-medium">Ý nghĩa:</span> {kanji.meaning}</p>
-                      <p><span className="font-medium">Âm On:</span> {kanji.onyomi}</p>
-                      <p><span className="font-medium">Âm Kun:</span> {kanji.kunyomi}</p>
-                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded mt-2">
+                    <p className="text-sm">Thực hành viết Kanji này trên giấy hoặc sử dụng bảng vẽ.</p>
                   </div>
                 </div>
               ))}
@@ -299,29 +291,27 @@ export default function ExerciseDetail() {
         )}
 
         {completed ? (
-          <div className="mt-8">
-            <div className="bg-green-50 border border-green-200 text-green-800 rounded-md p-4 mb-6">
-              <h3 className="font-semibold mb-2">Kết quả:</h3>
-              <p>Điểm số: <span className="font-bold">{score}/100</span></p>
-              <p>Thời gian: <span className="font-bold">{timeSpent} phút</span></p>
-            </div>
-            <StudyProgressButton 
-              category={exercise.category}
-              topic={exercise.title}
+          <div className="bg-green-50 p-6 rounded-lg text-center">
+            <h3 className="text-xl font-bold text-green-700 mb-2">Bài tập đã hoàn thành!</h3>
+            <p className="mb-2">Điểm số: <span className="font-bold">{score}/100</span></p>
+            <p className="mb-4">Thời gian: <span className="font-bold">{Math.floor(timeSpent / 60)} phút {timeSpent % 60} giây</span></p>
+            
+            <StudyProgressButton
+              exerciseId={exercise.id}
               score={score}
-              timeSpent={timeSpent}
-              level={exercise.level}
-              buttonText="Lưu kết quả học tập"
+              timeSpent={Math.round(timeSpent / 60)}
+              completed={true}
             />
           </div>
         ) : (
-          <div className="mt-8 flex justify-end">
-            <button
-              onClick={handleComplete}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
-            >
-              Hoàn thành bài tập
-            </button>
+          <div className="flex justify-end mt-8">
+            <StudyProgressButton
+              exerciseId={exercise.id}
+              score={0}
+              timeSpent={Math.round(timeSpent / 60)}
+              completed={completed}
+              onComplete={handleComplete}
+            />
           </div>
         )}
       </div>
