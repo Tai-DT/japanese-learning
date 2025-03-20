@@ -273,8 +273,8 @@ Nếu HOÀN TOÀN không thể nhận ra chữ Kanji nào rõ ràng, hãy trả 
 
     // Thiết lập cấu hình tối ưu cho nhận dạng 
     const generationConfig = {
-      temperature: 0.01,
-      topP: 0.90,
+      temperature: 0.1,
+      topP: 0.8,
       topK: 10,
       maxOutputTokens: 2048,
     };

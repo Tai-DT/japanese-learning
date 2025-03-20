@@ -42,8 +42,8 @@ async function callGeminiAPI(prompt: string, imageData?: string): Promise<string
   
   // Thiết lập cấu hình riêng cho nhận dạng hình ảnh
   const generationConfig = imageData ? {
-    temperature: 0.01, // Giảm temperature xuống rất thấp để nhận diện chính xác hơn
-    topP: 0.90,
+    temperature: 0.1, // Giảm temperature xuống rất thấp để nhận diện chính xác hơn
+    topP: 0.8,
     topK: 10,
     maxOutputTokens: 2048,
   } : {
